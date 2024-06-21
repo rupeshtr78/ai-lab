@@ -2,5 +2,6 @@ package main
 
 func main() {
 	// ChromaMain()
-	EmbedMain()
+	// EmbedMain()
+	ChromaOllamaMain("ollama-collection")
 }

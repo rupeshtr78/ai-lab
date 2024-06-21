@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"time"
+
 	chroma "github.com/amikos-tech/chroma-go"
 	"github.com/amikos-tech/chroma-go/collection"
 	openai "github.com/amikos-tech/chroma-go/openai"
 	"github.com/amikos-tech/chroma-go/types"
-	"log"
-	"os"
-	"time"
 )
 
 func ChromaMain() {
@@ -75,14 +76,14 @@ func addRecords(rs *types.RecordSet, ctx context.Context, newCollection *chroma.
 	// Build and validate the record set (this will create embeddings if not already present)
 	_, err := rs.BuildAndValidate(ctx)
 	if err != nil {
-		log.Default().Println("Error building and validating record set: %s \n", err)
+		log.Default().Printf("Error building and validating record set: %v\n", err)
 		return err
 	}
 
 	// Add the records to the collection
 	_, err = newCollection.AddRecords(context.Background(), rs)
 	if err != nil {
-		log.Default().Println("Error adding records: %s \n", err)
+		log.Default().Printf("Error adding records: %s\n", err)
 		return err
 	}
 	return err
@@ -98,7 +99,7 @@ func queryRecords(ctx context.Context, newCollection *chroma.Collection) error {
 		nil)
 
 	if qrerr != nil {
-		log.Default().Println("Error querying collection: %s \n", qrerr)
+		log.Default().Printf("Error querying collection: %s \n", qrerr)
 		return qrerr
 	}
 	fmt.Printf("qr: %v\n", qr.Documents[0][0]) //this should result in the document about dogs
@@ -112,7 +113,7 @@ func createRecordSet(openaiEf *openai.OpenAIEmbeddingFunction) (*types.RecordSet
 		types.WithIDGenerator(types.NewULIDGenerator()),
 	)
 	if err != nil {
-		log.Default().Println("Error creating record set: %s \n", err)
+		log.Default().Printf("Error creating record set: %s \n", err)
 		return nil, err
 	}
 	return rs, nil
@@ -128,7 +129,7 @@ func createCollection(ctx context.Context, collectionName string, client *chroma
 		collection.WithHNSWDistanceFunction(types.L2),
 	)
 	if err != nil {
-		log.Default().Println("Error creating collection: %s \n", err)
+		log.Default().Printf("Error creating collection: %s \n", err)
 		return nil, err
 	}
 	return newCollection, nil
@@ -139,14 +140,14 @@ func deleteCollection(ctx context.Context, collectionName string, client *chroma
 	// Check if the collection already exists
 	_, err := client.GetCollection(ctx, collectionName, nil)
 	if err != nil {
-		log.Default().Println("Error getting collection: %s \n", err)
+		log.Default().Printf("Error getting collection: %s \n", err)
 		return err
 	}
 
 	// Collection already exists, Delete the collection
 	_, err = client.DeleteCollection(ctx, collectionName)
 	if err != nil {
-		log.Default().Println("Error deleting collection: %s \n", err)
+		log.Default().Printf("Error deleting collection: %s \n", err)
 		return err
 	}
 	return nil
@@ -156,7 +157,7 @@ func getChromaClient(path string) (*chroma.Client, error) {
 	// Create a new Chroma client "http://0.0.0.0:8070"
 	client, err := chroma.NewClient(path)
 	if err != nil {
-		log.Default().Println("Error creating client: %s \n", err)
+		log.Default().Printf("Error creating client: %s \n", err)
 		return nil, err
 	}
 	return client, nil
@@ -167,7 +168,7 @@ func getEmbeddingFunction(env string) (*openai.OpenAIEmbeddingFunction, error) {
 	apiKey := os.Getenv(env)
 	openaiEf, err := openai.NewOpenAIEmbeddingFunction(apiKey)
 	if err != nil {
-		log.Default().Println("Error creating embedding function: %s \n", err)
+		log.Default().Printf("Error creating embedding function: %s \n", err)
 		return nil, err
 	}
 	return openaiEf, err
