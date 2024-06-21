@@ -26,3 +26,12 @@ __pycache__/
 **/*.pyz
 **/.vscode/**
 **/nvidia-server-repo/**
+langchain-rag/nvidia-server-repo/
+langchain-rag/.idea/
+langchain-rag/.ipynb_checkpoints/
+langchain-rag/__pycache__/
+langchain-rag/venv/
+langchain-rag/myenv/
+langchain-rag/build/
+langchain-rag/.vscode/
+langchain-rag/dist/

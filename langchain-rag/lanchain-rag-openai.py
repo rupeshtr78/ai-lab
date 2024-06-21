@@ -135,4 +135,4 @@ def ChatUI():
 
 if __name__ == '__main__':
     # chat_cli()
-    ChatUI()
+    ChatUI() #  streamlit run lanchain-rag-openai.py
