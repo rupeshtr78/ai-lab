@@ -1,4 +1,4 @@
-from typing import List
+from typing import TYPE_CHECKING, List
 from langchain_community.document_loaders.generic import GenericLoader, Document
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_core.vectorstores import VectorStoreRetriever

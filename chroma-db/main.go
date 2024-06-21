@@ -1,8 +1,7 @@
 package main
 
 func main() {
-	// ChromaMain()
+	//ChromaOpenAi("openai-collection")
 	// EmbedMain()
-	// ChromaOllamaMain("ollama-collection")
-	PocMain()
+	ChromaEmbedder()
 }

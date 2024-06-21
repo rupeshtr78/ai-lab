@@ -4,117 +4,122 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
+	"strings"
 
-	chroma "github.com/amikos-tech/chroma-go"
-	"github.com/amikos-tech/chroma-go/collection"
-	"github.com/amikos-tech/chroma-go/ollama"
-	"github.com/amikos-tech/chroma-go/types"
+	"github.com/google/uuid"
+	"github.com/tmc/langchaingo/embeddings"
+	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/schema"
+	"github.com/tmc/langchaingo/vectorstores"
+	"github.com/tmc/langchaingo/vectorstores/chroma"
 )
 
-func ChromaOllamaMain(collectionName string) {
+var CHROMA_URL = "http://0.0.0.0:8070"
 
-	duration := time.Duration(5) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), duration)
-	defer cancel()
-
-	// Create a new Ollama embedding function
-	ollamaEf, err := GetOllamEmbeddingFunction("ollama-model")
+func ChromaEmbedder() {
+	ollamaLLM, err := ollama.New(ollama.WithModel("nomic-embed-text"))
 	if err != nil {
-		log.Fatalf("Error getting embedding function: %s \n", err)
+		log.Fatal(err)
 	}
-
-	// Create a new Chroma client
-	client, err := getChromaClient("http://0.0.0.0:8070")
+	ollamaEmbeder, err := embeddings.NewEmbedder(ollamaLLM)
 	if err != nil {
-		log.Fatalf("Error creating client: %s \n", err)
+		log.Fatal(err)
 	}
 
-	// Delete the collection if it already exists
-	// err = deleteCollection(ctx, collectionName, client)
-	// if err != nil {
-	// log.Fatalf("Error deleting collection: %s \n", err)
-	// }
-
-	// Create a new collection
-	newCollection, err := createOllamaCollection(ctx, collectionName, client, ollamaEf)
-	if err != nil {
-		log.Fatalf("Error creating collection: %s \n", err)
-	}
-
-	// Create a new record set
-	rs, err := createOllamaRecordSet(ollamaEf)
-	if err != nil {
-		log.Fatalf("Error creating record set: %s \n", err)
-	}
-
-	// Add records to the collection
-	err = addRecords(rs, ctx, newCollection)
-	if err != nil {
-		log.Fatalf("Error adding records: %s \n", err)
-	}
-
-	// Count the number of documents in the collection
-	countDocs, qrerr := newCollection.Count(ctx)
-	if qrerr != nil {
-		log.Fatalf("Error counting documents: %s \n", qrerr)
-	}
-	fmt.Printf("countDocs: %v\n", countDocs) //this should result in 2
-
-	err = queryRecords(ctx, newCollection)
-	if err != nil {
-		log.Fatalf("Error querying records: %s \n", err)
-	}
-}
-
-// GetOllamaEmbedding returns an Ollama embedding function
-func GetOllamaClient(model string) (*ollama.OllamaClient, error) {
-	ollamaClient, err := ollama.NewOllamaClient(ollama.WithModel(model))
-	if err != nil {
-		return nil, err
-	}
-
-	return ollamaClient, nil
-}
-
-func GetOllamEmbeddingFunction(model string) (*ollama.OllamaEmbeddingFunction, error) {
-
-	enbeddingFn, err := ollama.NewOllamaEmbeddingFunction(
-		ollama.WithModel(model))
-	if err != nil {
-		log.Fatalf("Error getting embedding function: %s \n", err)
-		return nil, err
-	}
-	return enbeddingFn, nil
-
-}
-
-func createOllamaRecordSet(ollamaEf *ollama.OllamaEmbeddingFunction) (*types.RecordSet, error) {
-
-	// Create a new record set with to hold the records to insert
-	rs, err := types.NewRecordSet(
-		types.WithEmbeddingFunction(ollamaEf),
-		types.WithIDGenerator(types.NewULIDGenerator()),
+	// Create a new Chroma vector store.
+	store, errNs := chroma.New(
+		chroma.WithChromaURL(CHROMA_URL),
+		chroma.WithEmbedder(ollamaEmbeder),
+		chroma.WithDistanceFunction("cosine"),
+		chroma.WithNameSpace(uuid.New().String()),
 	)
-	if err != nil {
-		log.Default().Printf("Error creating record set: %s \n", err)
-		return nil, err
+	if errNs != nil {
+		log.Fatalf("new: %v\n", errNs)
 	}
-	return rs, nil
-}
 
-func createOllamaCollection(ctx context.Context, collectionName string, client *chroma.Client, ollamaEf *ollama.OllamaEmbeddingFunction) (*chroma.Collection, error) {
-	// Create a new collection with options
-	newCollection, err := client.NewCollection(
-		ctx,
-		collection.WithName(collectionName),
-		collection.WithMetadata("key1", "value1"),
-		collection.WithEmbeddingFunction(ollamaEf),
-		collection.WithHNSWDistanceFunction(types.L2),
-	)
-	if err != nil {
-		log.Default().Printf("Error creating collection: %s \n", err)
-		return nil, err
+	type meta = map[string]any
+
+	// Add documents to the vector store.
+	_, errAd := store.AddDocuments(context.Background(), []schema.Document{
+		{PageContent: "Tokyo", Metadata: meta{"population": 9.7, "area": 622}},
+		{PageContent: "Kyoto", Metadata: meta{"population": 1.46, "area": 828}},
+		{PageContent: "Hiroshima", Metadata: meta{"population": 1.2, "area": 905}},
+		{PageContent: "Kazuno", Metadata: meta{"population": 0.04, "area": 707}},
+		{PageContent: "Nagoya", Metadata: meta{"population": 2.3, "area": 326}},
+		{PageContent: "Toyota", Metadata: meta{"population": 0.42, "area": 918}},
+		{PageContent: "Fukuoka", Metadata: meta{"population": 1.59, "area": 341}},
+		{PageContent: "Paris", Metadata: meta{"population": 11, "area": 105}},
+		{PageContent: "London", Metadata: meta{"population": 9.5, "area": 1572}},
+		{PageContent: "Santiago", Metadata: meta{"population": 6.9, "area": 641}},
+		{PageContent: "Buenos Aires", Metadata: meta{"population": 15.5, "area": 203}},
+		{PageContent: "Rio de Janeiro", Metadata: meta{"population": 13.7, "area": 1200}},
+		{PageContent: "Sao Paulo", Metadata: meta{"population": 22.6, "area": 1523}},
+	})
+	if errAd != nil {
+		log.Fatalf("AddDocument: %v\n", errAd)
 	}
-	return newCollection, nil
+
+	ctx := context.TODO()
+
+	type exampleCase struct {
+		name         string
+		query        string
+		numDocuments int
+		options      []vectorstores.Option
+	}
+
+	type filter = map[string]any
+
+	exampleCases := []exampleCase{
+		{
+			name:         "Up to 5 Cities in Japan",
+			query:        "Which of these are cities are located in Japan?",
+			numDocuments: 5,
+			options: []vectorstores.Option{
+				vectorstores.WithScoreThreshold(0.5),
+			},
+		},
+		{
+			name:         "A City in South America",
+			query:        "Which of these are cities are located in South America?",
+			numDocuments: 1,
+			options: []vectorstores.Option{
+				vectorstores.WithScoreThreshold(0.5),
+			},
+		},
+		{
+			name:         "Large Cities in South America",
+			query:        "Which of these are cities are located in South America?",
+			numDocuments: 100,
+			options: []vectorstores.Option{
+				vectorstores.WithFilters(filter{
+					"$and": []filter{
+						{"area": filter{"$gte": 1000}},
+						{"population": filter{"$gte": 13}},
+					},
+				}),
+			},
+		},
+	}
+
+	// run the example cases
+	results := make([][]schema.Document, len(exampleCases))
+	for ecI, ec := range exampleCases {
+		docs, errSs := store.SimilaritySearch(ctx, ec.query, ec.numDocuments, ec.options...)
+		if errSs != nil {
+			log.Fatalf("query1: %v\n", errSs)
+		}
+		results[ecI] = docs
+	}
+
+	// print out the results of the run
+	fmt.Printf("Results:\n")
+	for ecI, ec := range exampleCases {
+		texts := make([]string, len(results[ecI]))
+		for docI, doc := range results[ecI] {
+			texts[docI] = doc.PageContent
+		}
+		fmt.Printf("%d. case: %s\n", ecI+1, ec.name)
+		fmt.Printf("    result: %s\n", strings.Join(texts, ", "))
+	}
 }

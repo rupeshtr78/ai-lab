@@ -13,7 +13,7 @@ import (
 	"github.com/amikos-tech/chroma-go/types"
 )
 
-func ChromaMain() {
+func ChromaOpenAi(collectionName string) {
 
 	duration := time.Duration(5) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
@@ -32,13 +32,13 @@ func ChromaMain() {
 	}
 
 	// Delete the collection if it already exists
-	err = deleteCollection(ctx, "test-collection", client)
+	err = deleteCollection(ctx, collectionName, client)
 	if err != nil {
 		log.Fatalf("Error deleting collection: %s \n", err)
 	}
 
 	// Create a new collection
-	newCollection, err := createCollection(ctx, "test-collection", client, openaiEf)
+	newCollection, err := createCollection(ctx, collectionName, client, openaiEf)
 	if err != nil {
 		log.Fatalf("Error creating collection: %s \n", err)
 	}
@@ -47,6 +47,12 @@ func ChromaMain() {
 	rs, err := createRecordSet(openaiEf)
 	if err != nil {
 		log.Fatalf("Error creating record set: %s \n", err)
+	}
+
+	// Build and validate the record set (this will create embeddings if not already present)
+	_, err = rs.BuildAndValidate(ctx)
+	if err != nil {
+		log.Fatalf("Error building and validating record set: %s \n", err)
 	}
 
 	// Add records to the collection
@@ -73,15 +79,8 @@ func addRecords(rs *types.RecordSet, ctx context.Context, newCollection *chroma.
 	rs.WithRecord(types.WithDocument("My name is John. And I have two dogs."), types.WithMetadata("key1", "value1"))
 	rs.WithRecord(types.WithDocument("My name is Jane. I am a data scientist."), types.WithMetadata("key2", "value2"))
 
-	// Build and validate the record set (this will create embeddings if not already present)
-	_, err := rs.BuildAndValidate(ctx)
-	if err != nil {
-		log.Default().Printf("Error building and validating record set: %v\n", err)
-		return err
-	}
-
 	// Add the records to the collection
-	_, err = newCollection.AddRecords(context.Background(), rs)
+	_, err := newCollection.AddRecords(context.Background(), rs)
 	if err != nil {
 		log.Default().Printf("Error adding records: %s\n", err)
 		return err
@@ -116,6 +115,7 @@ func createRecordSet(openaiEf *openai.OpenAIEmbeddingFunction) (*types.RecordSet
 		log.Default().Printf("Error creating record set: %s \n", err)
 		return nil, err
 	}
+
 	return rs, nil
 }
 
@@ -136,7 +136,6 @@ func createCollection(ctx context.Context, collectionName string, client *chroma
 }
 
 func deleteCollection(ctx context.Context, collectionName string, client *chroma.Client) error {
-	//collectionName := "test-collection"
 	// Check if the collection already exists
 	_, err := client.GetCollection(ctx, collectionName, nil)
 	if err != nil {
