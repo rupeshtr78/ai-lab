@@ -3,5 +3,6 @@ package main
 func main() {
 	// ChromaMain()
 	// EmbedMain()
-	ChromaOllamaMain("ollama-collection")
+	// ChromaOllamaMain("ollama-collection")
+	PocMain()
 }
