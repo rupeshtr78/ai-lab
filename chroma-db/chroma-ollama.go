@@ -17,90 +17,20 @@ import (
 var CHROMA_URL = "http://0.0.0.0:8070"
 
 func ChromaEmbedder() {
-	ollamaLLM, err := ollama.New(ollama.WithModel("nomic-embed-text"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	ollamaEmbeder, err := embeddings.NewEmbedder(ollamaLLM)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Create a new Ollama embedder.
+	// ollama pull nomic-embed-text ,ollama serve
+	ollamaEmbeder := GetOllamaEmbedding("nomic-embed-text")
 
 	// Create a new Chroma vector store.
-	store, errNs := chroma.New(
-		chroma.WithChromaURL(CHROMA_URL),
-		chroma.WithEmbedder(ollamaEmbeder),
-		chroma.WithDistanceFunction("cosine"),
-		chroma.WithNameSpace(uuid.New().String()),
-	)
-	if errNs != nil {
-		log.Fatalf("new: %v\n", errNs)
-	}
+	store := CreateChromaStore(ollamaEmbeder)
 
-	type meta = map[string]any
-
-	// Add documents to the vector store.
-	_, errAd := store.AddDocuments(context.Background(), []schema.Document{
-		{PageContent: "Tokyo", Metadata: meta{"population": 9.7, "area": 622}},
-		{PageContent: "Kyoto", Metadata: meta{"population": 1.46, "area": 828}},
-		{PageContent: "Hiroshima", Metadata: meta{"population": 1.2, "area": 905}},
-		{PageContent: "Kazuno", Metadata: meta{"population": 0.04, "area": 707}},
-		{PageContent: "Nagoya", Metadata: meta{"population": 2.3, "area": 326}},
-		{PageContent: "Toyota", Metadata: meta{"population": 0.42, "area": 918}},
-		{PageContent: "Fukuoka", Metadata: meta{"population": 1.59, "area": 341}},
-		{PageContent: "Paris", Metadata: meta{"population": 11, "area": 105}},
-		{PageContent: "London", Metadata: meta{"population": 9.5, "area": 1572}},
-		{PageContent: "Santiago", Metadata: meta{"population": 6.9, "area": 641}},
-		{PageContent: "Buenos Aires", Metadata: meta{"population": 15.5, "area": 203}},
-		{PageContent: "Rio de Janeiro", Metadata: meta{"population": 13.7, "area": 1200}},
-		{PageContent: "Sao Paulo", Metadata: meta{"population": 22.6, "area": 1523}},
-	})
-	if errAd != nil {
-		log.Fatalf("AddDocument: %v\n", errAd)
-	}
+	// Add sample data to the vector store.
+	AddSampleData(store)
 
 	ctx := context.TODO()
 
-	type exampleCase struct {
-		name         string
-		query        string
-		numDocuments int
-		options      []vectorstores.Option
-	}
-
-	type filter = map[string]any
-
-	exampleCases := []exampleCase{
-		{
-			name:         "Up to 5 Cities in Japan",
-			query:        "Which of these are cities are located in Japan?",
-			numDocuments: 5,
-			options: []vectorstores.Option{
-				vectorstores.WithScoreThreshold(0.5),
-			},
-		},
-		{
-			name:         "A City in South America",
-			query:        "Which of these are cities are located in South America?",
-			numDocuments: 1,
-			options: []vectorstores.Option{
-				vectorstores.WithScoreThreshold(0.5),
-			},
-		},
-		{
-			name:         "Large Cities in South America",
-			query:        "Which of these are cities are located in South America?",
-			numDocuments: 100,
-			options: []vectorstores.Option{
-				vectorstores.WithFilters(filter{
-					"$and": []filter{
-						{"area": filter{"$gte": 1000}},
-						{"population": filter{"$gte": 13}},
-					},
-				}),
-			},
-		},
-	}
+	// Create example cases.
+	exampleCases := SampleQuery()
 
 	// run the example cases
 	results := make([][]schema.Document, len(exampleCases))
@@ -121,5 +51,99 @@ func ChromaEmbedder() {
 		}
 		fmt.Printf("%d. case: %s\n", ecI+1, ec.name)
 		fmt.Printf("    result: %s\n", strings.Join(texts, ", "))
+	}
+}
+
+type exampleCase struct {
+	name         string
+	query        string
+	numDocuments int
+	options      []vectorstores.Option
+}
+
+func SampleQuery() []exampleCase {
+
+	type filter = map[string]any
+
+	exampleCases := []exampleCase{
+		{
+			name:         "Up to 5 Cities in Japan",
+			query:        "Which of these are cities are located in Japan?",
+			numDocuments: 5,
+			options: []vectorstores.Option{
+				vectorstores.WithScoreThreshold(0.8),
+			},
+		},
+		{
+			name:         "A City in South America",
+			query:        "Which of these are cities are located in South America?",
+			numDocuments: 1,
+			options: []vectorstores.Option{
+				vectorstores.WithScoreThreshold(0.8),
+			},
+		},
+		{
+			name:         "Large Cities in South America",
+			query:        "Which of these are cities are located in South America?",
+			numDocuments: 100,
+			options: []vectorstores.Option{
+				vectorstores.WithFilters(filter{
+					"$and": []filter{
+						{"area": filter{"$gte": 1000}},
+						{"population": filter{"$gte": 13}},
+					},
+				}),
+			},
+		},
+	}
+	return exampleCases
+}
+
+func CreateChromaStore(ollamaEmbeder *embeddings.EmbedderImpl) chroma.Store {
+	store, errNs := chroma.New(
+		chroma.WithChromaURL(CHROMA_URL),
+		chroma.WithEmbedder(ollamaEmbeder),
+		chroma.WithDistanceFunction("cosine"), // l2, cosine
+		chroma.WithNameSpace(uuid.New().String()),
+	)
+	if errNs != nil {
+		log.Fatalf("new: %v\n", errNs)
+	}
+	return store
+}
+
+func GetOllamaEmbedding(model string) *embeddings.EmbedderImpl {
+	ollamaLLM, err := ollama.New(ollama.WithModel(model))
+	if err != nil {
+		log.Fatal(err)
+	}
+	ollamaEmbeder, err := embeddings.NewEmbedder(ollamaLLM)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ollamaEmbeder
+}
+
+func AddSampleData(store chroma.Store) {
+	type meta = map[string]any
+
+	// Add documents to the vector store.
+	_, errAd := store.AddDocuments(context.Background(), []schema.Document{
+		{PageContent: "Tokyo", Metadata: meta{"population": 9.7, "area": 622}},
+		{PageContent: "Kyoto", Metadata: meta{"population": 1.46, "area": 828}},
+		{PageContent: "Hiroshima", Metadata: meta{"population": 1.2, "area": 905}},
+		{PageContent: "Kazuno", Metadata: meta{"population": 0.04, "area": 707}},
+		{PageContent: "Nagoya", Metadata: meta{"population": 2.3, "area": 326}},
+		{PageContent: "Toyota", Metadata: meta{"population": 0.42, "area": 918}},
+		{PageContent: "Fukuoka", Metadata: meta{"population": 1.59, "area": 341}},
+		{PageContent: "Paris", Metadata: meta{"population": 11, "area": 105}},
+		{PageContent: "London", Metadata: meta{"population": 9.5, "area": 1572}},
+		{PageContent: "Santiago", Metadata: meta{"population": 6.9, "area": 641}},
+		{PageContent: "Buenos Aires", Metadata: meta{"population": 15.5, "area": 203}},
+		{PageContent: "Rio de Janeiro", Metadata: meta{"population": 13.7, "area": 1200}},
+		{PageContent: "Sao Paulo", Metadata: meta{"population": 22.6, "area": 1523}},
+	})
+	if errAd != nil {
+		log.Fatalf("AddDocument: %v\n", errAd)
 	}
 }

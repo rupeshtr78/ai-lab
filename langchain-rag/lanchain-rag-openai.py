@@ -125,10 +125,22 @@ def ChatUI():
 
     question = st.text_input("Enter your question:")
 
+
+    # if st.button("Ask"):
+    #     if question:
+    #         answer = st.session_state.helper.chat(question)
+    #         st.write(answer)
+    #     else:
+    #         st.write("Please enter a question.")
+    if 'history' not in st.session_state:
+        st.session_state['history'] = []
+
     if st.button("Ask"):
         if question:
             answer = st.session_state.helper.chat(question)
-            st.write(answer)
+            st.session_state['history'].append((question, answer))
+            for q, a in st.session_state['history']:
+                st.markdown(f"**Question:** {q}\n\n**Answer:** {a}\n\n---")
         else:
             st.write("Please enter a question.")
 
