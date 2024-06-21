@@ -31,10 +31,10 @@ func ChromaOllamaMain(collectionName string) {
 	}
 
 	// Delete the collection if it already exists
-	err = deleteCollection(ctx, collectionName, client)
-	if err != nil {
-		log.Fatalf("Error deleting collection: %s \n", err)
-	}
+	// err = deleteCollection(ctx, collectionName, client)
+	// if err != nil {
+	// log.Fatalf("Error deleting collection: %s \n", err)
+	// }
 
 	// Create a new collection
 	newCollection, err := createOllamaCollection(ctx, collectionName, client, ollamaEf)
