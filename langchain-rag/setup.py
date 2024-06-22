@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='your_package_name',  # Replace with your package name
+    name='langchain-rag-pkg',  # Replace with your package name
     version='0.1.0',  # Replace with your package version
     packages=find_packages(),
     install_requires=[
@@ -13,6 +13,8 @@ setup(
         'langchain',
         'click',
         'streamlit',
+        'numpy<2,>=1',
+        'esprima',
     ],
     author='Rupesh',  # Replace with your name
     author_email='rupeshtr78@gmail.com',  # Replace with your email

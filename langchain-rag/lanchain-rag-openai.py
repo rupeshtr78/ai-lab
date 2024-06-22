@@ -25,7 +25,7 @@ class LangChainHelper:
         loader = GenericLoader.from_filesystem(
             self.path,
             glob="**/*",
-            suffixes=[".go"],
+            suffixes=[".js", ".ts", ".go", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".rs", ".rb", ".php", ".html",],
             exclude=["Dockerfile", "vendor", "docker-compose.yml", "Makefile", "README.md"],
             parser=LanguageParser(language=self.language, parser_threshold=500),
         )
@@ -123,7 +123,8 @@ def ChatUI():
         st.session_state.model = model
         st.session_state.language = language
 
-    question = st.text_input("Enter your question:")
+    # question = st.text_input("Enter your question:")
+    question = st.text_area("Enter your question:")
 
 
     # if st.button("Ask"):
