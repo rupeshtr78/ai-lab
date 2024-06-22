@@ -20,7 +20,7 @@ class LangChainHelper:
         self.path = path
         self.model = model
         self.language = language
-        self.openAiEmbeddings = self.openAiEmbeddings or OpenAIEmbeddings(model="text-embedding-3-small", disallowed_special=())
+        self.openAiEmbeddings = openAiEmbeddings or OpenAIEmbeddings(model="text-embedding-3-small", disallowed_special=())
 
     def doc_loader(self) -> List[Document]:
         loader = GenericLoader.from_filesystem(
@@ -101,7 +101,8 @@ class LangChainHelper:
 @click.option('--language', prompt='Enter the programming language of your documents', default='go',
               help='The programming language of the documents.')
 def chat_cli(path, model, language):
-    helper = LangChainHelper(path, model, language)
+    openAiEmbeddings = OpenAIEmbeddings(model="text-embedding-3-small", disallowed_special=())
+    helper = LangChainHelper(path, model, language, openAiEmbeddings)
     while True:
         question = input("Enter your question (or type 'exit' to quit): ")
         if question.lower() == 'exit':
@@ -116,10 +117,11 @@ def ChatUI():
     path = st.text_input("Enter the path to your documents:", value="")
     model = st.text_input("Enter the model you want to use:", value="gpt-4")
     language = st.text_input("Enter the programming language of your documents:", value="go")
+    openAiEmbeddings = OpenAIEmbeddings(model="text-embedding-3-small", disallowed_special=())
 
     if 'helper' not in st.session_state or path != st.session_state.get('path', '') or model != st.session_state.get(
             'model', '') or language != st.session_state.get('language', ''):
-        st.session_state.helper = LangChainHelper(path, model, language)
+        st.session_state.helper = LangChainHelper(path, model, language, openAiEmbeddings)
         st.session_state.path = path
         st.session_state.model = model
         st.session_state.language = language

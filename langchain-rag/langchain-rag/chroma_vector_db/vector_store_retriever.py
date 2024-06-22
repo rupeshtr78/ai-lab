@@ -18,7 +18,7 @@ class ChromaStoreRetriever:
     def start_chroma_db(self):
         pass
 
-    def chroma_client(self) -> ClientAPI:
+    def get_chroma_client(self) -> ClientAPI:
         client = None
         try:
             client =chromadb.HttpClient(
@@ -35,6 +35,25 @@ class ChromaStoreRetriever:
             sys.exit(0)
         return client
     
+    # async client for chroma db better for streamlit
+    def get_chroma_async_client(self) -> AsyncClientAPI:
+        client = None
+        try:
+            client = chromadb.AsyncHttpClient(
+                        host=self.host,
+                        port=self.port,
+                        settings=Settings(
+                            chroma_client_auth_provider="chromadb.auth.basic_authn.BasicAuthClientProvider",
+                            chroma_client_auth_credentials="admin:testDb@rupesh",
+                        ),
+                    )
+        except ValueError:
+        # We don't expect to be able to connect to Chroma. We just want to make sure
+        # there isn't an ImportError.
+            sys.exit(0)
+        return client
+    
+
 
     def get_retriever(self, documents: List[Document]) -> VectorStoreRetriever:
         db = Chroma.from_documents(documents, self.openAiEmbeddings)
