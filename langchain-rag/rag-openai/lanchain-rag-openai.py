@@ -16,17 +16,18 @@ logger = getLogger(__name__)
 
 
 class LangChainHelper:
-    def __init__(self, path: str, model: str, language: str):
+    def __init__(self, path: str, model: str, language: str, openAiEmbeddings: OpenAIEmbeddings = None):
         self.path = path
         self.model = model
         self.language = language
+        self.openAiEmbeddings = self.openAiEmbeddings or OpenAIEmbeddings(model="text-embedding-3-small", disallowed_special=())
 
     def doc_loader(self) -> List[Document]:
         loader = GenericLoader.from_filesystem(
             self.path,
             glob="**/*",
             suffixes=[".js", ".ts", ".go", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".rs", ".rb", ".php", ".html",],
-            exclude=["Dockerfile", "vendor", "docker-compose.yml", "Makefile", "README.md"],
+            exclude=["Dockerfile", "vendor", "docker-compose.yml", "Makefile", "README.md", "build", "dist", "node_modules", "target", "out", ".git", ".idea", ".vscode", ".venv", ".pytest_cache", ".tox", ".mypy_cache", ".cache", ".eggs", ".ipynb_checkpoints", ".gitignore", ".dockerignore", ".gitattributes", ".editorconfig", ".pre-commit-config.yaml", ".flake8", ".pylintrc", ".gitlab-ci.yml", ".travis.yml", ".github", ".gitignore", ".gitattributes", ".editorconfig", ".pre-commit-config.yaml", ".flake8", ".pylintrc", ".gitlab-ci.yml", ".travis.yml", ".github"],
             parser=LanguageParser(language=self.language, parser_threshold=500),
         )
         documents = loader.load()
@@ -36,13 +37,13 @@ class LangChainHelper:
     def document_chunks(self, documents: List[Document]) -> List[Document]:
         # Split the content of all documents.
         doc_splitter = RecursiveCharacterTextSplitter.from_language(
-            language=self.language, chunk_size=512, chunk_overlap=200
+            language=self.language, chunk_size=1024, chunk_overlap=200
         )
         texts = doc_splitter.split_documents(documents)
         return texts
 
     def get_retriever(self, documents: List[Document]) -> VectorStoreRetriever:
-        db = Chroma.from_documents(documents, OpenAIEmbeddings(model="text-embedding-3-large", disallowed_special=()))
+        db = Chroma.from_documents(documents, self.openAiEmbeddings)
         retriever = db.as_retriever(
             search_type="mmr",
             # search_kwargs={"k": 8},

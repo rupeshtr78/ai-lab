@@ -8,3 +8,6 @@ click
 streamlit
 numpy<2,>=1.20.0
 esprima
+tree-sitter 
+tree-sitter-languages
+pytest

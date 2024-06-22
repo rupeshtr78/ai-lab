@@ -15,6 +15,10 @@ setup(
         'streamlit',
         'numpy<2,>=1',
         'esprima',
+        'pandas',
+        'tree-sitter',
+        'tree-sitter-languages',
+        'pytest',
     ],
     author='Rupesh',  # Replace with your name
     author_email='rupeshtr78@gmail.com',  # Replace with your email
