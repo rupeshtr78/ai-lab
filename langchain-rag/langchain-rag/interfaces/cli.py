@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from chroma_vector_db import ChromaStoreRetriever
 
 def chat(self, question: str) -> str:
-
+    
     documents = self.doc_loader()
     chunks = self.document_chunks(documents)
     retriever = self.get_retriever(chunks)
