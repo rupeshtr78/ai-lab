@@ -1,6 +1,23 @@
+import sys
+from pathlib import Path
+
+# Assuming this file is located at the root of your project
+root_path = Path(__file__).parent.parent
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
+
+
 import click
 from langchain_openai import OpenAIEmbeddings
 from chroma_vector_db import ChromaStoreRetriever
+from document_loaders import CodeBaseLoader
+from prompts import CodePromtTemplate
+
+class LangChainCLI:
+    def __init__(self, path, model, language):
+        self.helper = LangChainHelper(path, model, language)
+    pass
+
 
 def chat(self, question: str) -> str:
     
