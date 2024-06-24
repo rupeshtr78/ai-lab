@@ -1,3 +1,0 @@
-text-embedding-3-large
-text-similarity-davinci-001 ( deprecated )
-text-embedding-3-small
