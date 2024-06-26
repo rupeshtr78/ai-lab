@@ -44,12 +44,12 @@ func ChromaEmbedder() {
 
 	fmt.Printf("Got collection: %v\n", ollamaCollection.Name)
 
-	// delete namespace
+	// delete collection
 	c, err := chromaClient.DeleteCollection(context.Background(), namespace)
 	if err != nil {
-		log.Fatalf("delete collection: %v\n", err)
+		log.Fatalf("error delete collection: %v\n", err)
 	}
-	fmt.Printf("Deleted collection: %v\n", c.Name)
+	fmt.Printf("deleted collection: %v\n", c.Name)
 
 	// Create a new Chroma vector store.
 	store := CreateChromaStore(ollamaEmbeder, namespace)
@@ -66,11 +66,22 @@ func ChromaEmbedder() {
 	results := make([][]schema.Document, len(exampleCases))
 
 	// query_results := make([]chromago.QueryResults, len(exampleCases))
+	// count collection
+	coll, err := GetCollection(ctx, chromaClient)
+	if err != nil {
+		fmt.Println("Error fecthing collection count")
+	}
+
+	count, err := coll.Count(ctx)
+
+	fmt.Printf("Collecton count: %v\n", count)
+	query := make([]string, len(exampleCases))
 
 	for _, ec := range exampleCases {
-		fmt.Printf("Query: %s\n", ollamaCollection.Name)
-		qr, err := ollamaCollection.Query(ctx,
-			[]string{ec.query},
+		query = append(query, ec.query)
+
+		qr, err := coll.Query(ctx,
+			query,
 			1,
 			nil,
 			nil,
@@ -79,7 +90,11 @@ func ChromaEmbedder() {
 			log.Fatalf("query1: %v\n", err)
 		}
 
-		fmt.Printf("qr: %v\n", qr.Documents[0][0]) //this should result
+		if len(qr.Documents) > 0 && len(qr.Documents[0]) > 0 {
+			fmt.Printf("qr: %v\n", qr.Documents[0][0]) // this should result
+		} else {
+			log.Fatalf("No documents returned")
+		}
 
 	}
 
@@ -149,6 +164,16 @@ func SampleQuery() []exampleCase {
 		},
 	}
 	return exampleCases
+}
+
+func GetCollection(ctx context.Context, chromaClient *chromago.Client) (*chromago.Collection, error) {
+	ollamaCollection, err := chromaClient.GetCollection(context.Background(), namespace, nil)
+	if err != nil {
+		log.Fatalf("get collection: %v\n", err)
+		return nil, err
+	}
+
+	return ollamaCollection, nil
 }
 
 func getChromeStore() (chroma.Store, error) {
