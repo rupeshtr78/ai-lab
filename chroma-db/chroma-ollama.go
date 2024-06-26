@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/uuid"
+	chromago "github.com/amikos-tech/chroma-go"
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/schema"
@@ -16,16 +16,46 @@ import (
 
 var CHROMA_URL = "http://0.0.0.0:8070"
 
+var namespace = "chroma-ollama"
+
+var score_threshold float32 = 0.6
+
 func ChromaEmbedder() {
 	// Create a new Ollama embedder.
-	// ollama pull nomic-embed-text ,ollama serve
-	ollamaEmbeder := GetOllamaEmbedding("nomic-embed-text")
+	// ollama pull nomic-embed-text ,ollama serve mxbai-embed-large
+	ollamaEmbeder := GetOllamaEmbedding("mxbai-embed-large")
+
+	// clientOpts := vectorstores.Options{NameSpace: namespace}
+	// create the client connection and confirm that we can access the server with it
+	chromaClient, err := chromago.NewClient(CHROMA_URL)
+	if err != nil {
+		log.Fatalf("new client: %v\n", err)
+	}
+
+	if _, errHb := chromaClient.Heartbeat(context.Background()); errHb != nil {
+		log.Fatalf("heartbeat: %v\n", errHb)
+	}
+
+	// get collection
+	ollamaCollection, err := chromaClient.GetCollection(context.Background(), namespace, nil)
+	if err != nil {
+		log.Fatalf("get collection: %v\n", err)
+	}
+
+	fmt.Printf("Got collection: %v\n", ollamaCollection.Name)
+
+	// delete namespace
+	c, err := chromaClient.DeleteCollection(context.Background(), namespace)
+	if err != nil {
+		log.Fatalf("delete collection: %v\n", err)
+	}
+	fmt.Printf("Deleted collection: %v\n", c.Name)
 
 	// Create a new Chroma vector store.
-	store := CreateChromaStore(ollamaEmbeder)
+	store := CreateChromaStore(ollamaEmbeder, namespace)
 
 	// Add sample data to the vector store.
-	AddSampleData(store)
+	AddSampleData(store, namespace)
 
 	ctx := context.TODO()
 
@@ -34,6 +64,27 @@ func ChromaEmbedder() {
 
 	// run the example cases
 	results := make([][]schema.Document, len(exampleCases))
+
+	// query_results := make([]chromago.QueryResults, len(exampleCases))
+
+	for _, ec := range exampleCases {
+		fmt.Printf("Query: %s\n", ollamaCollection.Name)
+		qr, err := ollamaCollection.Query(ctx,
+			[]string{ec.query},
+			1,
+			nil,
+			nil,
+			nil)
+		if err != nil {
+			log.Fatalf("query1: %v\n", err)
+		}
+
+		fmt.Printf("qr: %v\n", qr.Documents[0][0]) //this should result
+
+	}
+
+	// print out the results of the run
+
 	for ecI, ec := range exampleCases {
 		docs, errSs := store.SimilaritySearch(ctx, ec.query, ec.numDocuments, ec.options...)
 		if errSs != nil {
@@ -71,7 +122,7 @@ func SampleQuery() []exampleCase {
 			query:        "Which of these are cities are located in Japan?",
 			numDocuments: 5,
 			options: []vectorstores.Option{
-				vectorstores.WithScoreThreshold(0.8),
+				vectorstores.WithScoreThreshold(score_threshold),
 			},
 		},
 		{
@@ -79,7 +130,7 @@ func SampleQuery() []exampleCase {
 			query:        "Which of these are cities are located in South America?",
 			numDocuments: 1,
 			options: []vectorstores.Option{
-				vectorstores.WithScoreThreshold(0.8),
+				vectorstores.WithScoreThreshold(score_threshold),
 			},
 		},
 		{
@@ -93,18 +144,31 @@ func SampleQuery() []exampleCase {
 						{"population": filter{"$gte": 13}},
 					},
 				}),
+				vectorstores.WithScoreThreshold(score_threshold),
 			},
 		},
 	}
 	return exampleCases
 }
 
-func CreateChromaStore(ollamaEmbeder *embeddings.EmbedderImpl) chroma.Store {
+func getChromeStore() (chroma.Store, error) {
+	store, err := chroma.New(
+		chroma.WithChromaURL(CHROMA_URL),
+	)
+	if err != nil {
+		log.Fatalf("new: %v\n", err)
+		return chroma.Store{}, err
+	}
+	return store, err
+}
+
+func CreateChromaStore(ollamaEmbeder *embeddings.EmbedderImpl, namespace string) chroma.Store {
 	store, errNs := chroma.New(
 		chroma.WithChromaURL(CHROMA_URL),
 		chroma.WithEmbedder(ollamaEmbeder),
-		chroma.WithDistanceFunction("cosine"), // l2, cosine
-		chroma.WithNameSpace(uuid.New().String()),
+		chroma.WithDistanceFunction("cosine"), // l2, cosine, ip
+		// chroma.WithNameSpace(uuid.New().String()),
+		chroma.WithNameSpace(namespace),
 	)
 	if errNs != nil {
 		log.Fatalf("new: %v\n", errNs)
@@ -124,26 +188,31 @@ func GetOllamaEmbedding(model string) *embeddings.EmbedderImpl {
 	return ollamaEmbeder
 }
 
-func AddSampleData(store chroma.Store) {
-	type meta = map[string]any
+func AddSampleData(store chroma.Store, namespace string) {
 
 	// Add documents to the vector store.
-	_, errAd := store.AddDocuments(context.Background(), []schema.Document{
-		{PageContent: "Tokyo", Metadata: meta{"population": 9.7, "area": 622}},
-		{PageContent: "Kyoto", Metadata: meta{"population": 1.46, "area": 828}},
-		{PageContent: "Hiroshima", Metadata: meta{"population": 1.2, "area": 905}},
-		{PageContent: "Kazuno", Metadata: meta{"population": 0.04, "area": 707}},
-		{PageContent: "Nagoya", Metadata: meta{"population": 2.3, "area": 326}},
-		{PageContent: "Toyota", Metadata: meta{"population": 0.42, "area": 918}},
-		{PageContent: "Fukuoka", Metadata: meta{"population": 1.59, "area": 341}},
-		{PageContent: "Paris", Metadata: meta{"population": 11, "area": 105}},
-		{PageContent: "London", Metadata: meta{"population": 9.5, "area": 1572}},
-		{PageContent: "Santiago", Metadata: meta{"population": 6.9, "area": 641}},
-		{PageContent: "Buenos Aires", Metadata: meta{"population": 15.5, "area": 203}},
-		{PageContent: "Rio de Janeiro", Metadata: meta{"population": 13.7, "area": 1200}},
-		{PageContent: "Sao Paulo", Metadata: meta{"population": 22.6, "area": 1523}},
-	})
+	_, errAd := store.AddDocuments(context.Background(), docs,
+		vectorstores.WithNameSpace(namespace),
+	)
 	if errAd != nil {
 		log.Fatalf("AddDocument: %v\n", errAd)
 	}
+}
+
+type meta = map[string]any
+
+var docs = []schema.Document{
+	{PageContent: "Tokyo", Metadata: meta{"population": 9.7, "area": 622}},
+	{PageContent: "Kyoto", Metadata: meta{"population": 1.46, "area": 828}},
+	{PageContent: "Hiroshima", Metadata: meta{"population": 1.2, "area": 905}},
+	{PageContent: "Kazuno", Metadata: meta{"population": 0.04, "area": 707}},
+	{PageContent: "Nagoya", Metadata: meta{"population": 2.3, "area": 326}},
+	{PageContent: "Toyota", Metadata: meta{"population": 0.42, "area": 918}},
+	{PageContent: "Fukuoka", Metadata: meta{"population": 1.59, "area": 341}},
+	{PageContent: "Paris", Metadata: meta{"population": 11, "area": 105}},
+	{PageContent: "London", Metadata: meta{"population": 9.5, "area": 1572}},
+	{PageContent: "Santiago", Metadata: meta{"population": 6.9, "area": 641}},
+	{PageContent: "Buenos Aires", Metadata: meta{"population": 15.5, "area": 203}},
+	{PageContent: "Rio de Janeiro", Metadata: meta{"population": 13.7, "area": 1200}},
+	{PageContent: "Sao Paulo", Metadata: meta{"population": 22.6, "area": 1523}},
 }
