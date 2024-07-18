@@ -1,13 +1,7 @@
 FROM codellama:latest
 
 # FROM /data/ai/ollama/blobs/sha256-3a43f93b78ec50f7c4e4dc8bd1cb3fff5a900e7d574c51a6f7495e48486e0dac
-TEMPLATE """{{ if .System }}<|start_header_id|>system<|end_header_id|>
-
-{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
-
-{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
-
-{{ .Response }}<|eot_id|>"""
+TEMPLATE """{{ if .System }}<|startoftext|>system
 PARAMETER temperature 0.4
 PARAMETER top_p 0.8
 PARAMETER frequency_penalty 0.2
