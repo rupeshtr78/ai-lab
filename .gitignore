@@ -1,4 +1,6 @@
 venv/
+**/.venv/
+**/venv/
 myenv/
 build/
 .ipynb_checkpoints
