@@ -1,7 +1,12 @@
 FROM codellama:latest
 
 # FROM /data/ai/ollama/blobs/sha256-3a43f93b78ec50f7c4e4dc8bd1cb3fff5a900e7d574c51a6f7495e48486e0dac
-TEMPLATE """{{ if .System }}<|startoftext|>system
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
 PARAMETER temperature 0.4
 PARAMETER top_p 0.8
 PARAMETER frequency_penalty 0.2
