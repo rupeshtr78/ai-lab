@@ -1,1 +1,28 @@
 FROM /data/ai/lmstudio/Qwen/Qwen2-0.5B-Instruct-GGUF/qwen2-0_5b-instruct-fp16.gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}
+{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}
+<|im_start|>assistant
+"""
+PARAMETER temperature 0.6
+PARAMETER top_k 60
+PARAMETER top_p 0.6
+PARAMETER frequency_penalty 1.2
+PARAMETER num_ctx 16384
+PARAMETER mirostat_eta 0.5
+PARAMETER num_batch 1024
+PARAMETER num_keep 256
+PARAMETER num_thread 8
+PARAMETER repeat_last_n 64
+PARAMETER stop [INST]
+PARAMETER stop [/INST]
+PARAMETER stop <<SYS>>
+PARAMETER stop <</SYS>>
+
+SYSTEM """
+I want you to act as a expert software developer. I will provide some specific information about requirements, and it will be your job to come up with code or suggest improvements with the given requirements.
+"""
