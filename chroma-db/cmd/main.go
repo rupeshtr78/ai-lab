@@ -1,17 +1,17 @@
 package main
 
 import (
-	"chroma-db/cmd/chat"
 	"chroma-db/cmd/vectordb"
 	"context"
+	"time"
 )
 
 func main() {
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
 	vectordb.RunVectorDb(ctx)
 
-	chat.ChatOllama(ctx)
+	// chat.ChatOllama(ctx)
 }

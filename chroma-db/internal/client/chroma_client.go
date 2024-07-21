@@ -19,10 +19,11 @@ func GetChromaClient(ctx context.Context, url string) (*chromago.Client, error) 
 	if _, errHb := chromaClient.Heartbeat(ctx); errHb != nil {
 		return nil, errHb
 	}
+
 	return chromaClient, err
 }
 
-func GetChromaStore(ctx context.Context,
+func CreateChromaStore(ctx context.Context,
 	chromaUrl string,
 	nameSpace string,
 	embedder embeddings.Embedder,

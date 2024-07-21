@@ -14,16 +14,25 @@ func RunVectorDb(ctx context.Context) {
 	// Create a new instance of the server
 	client, err := client.GetChromaClient(ctx, constants.ChromaUrl)
 	if err != nil {
-		panic(err)
+		log.Default().Println(err)
+		return
 	}
 
-	// Get the list of all the available databases
-	c, err2 := client.ListCollections(ctx)
+	// Get the list of all the available collections
+	collections, err2 := client.ListCollections(ctx)
 	if err2 != nil {
 		log.Default().Println(err2)
 	}
 
-	for _, v := range c {
-		log.Default().Println(v.Name)
+	// Print the list of databases
+
+	for _, col := range collections {
+		log.Default().Printf("Collection: %v\n", col.Name)
+		log.Default().Printf("Database: %v\n", col.Database)
+		log.Default().Printf("Tenant: %v\n", col.Tenant)
 	}
 }
+
+// 2024/07/21 14:39:53 Collection: chroma-ollama
+// 2024/07/21 14:39:53 Database: default_database
+// 2024/07/21 14:39:53 Tenant: default_tenant
