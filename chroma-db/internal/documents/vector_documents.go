@@ -10,6 +10,7 @@ import (
 	"github.com/tmc/langchaingo/vectorstores/chroma"
 )
 
+// Add documents to the vector store.
 func AddDocuments(ctx context.Context,
 	store *chroma.Store,
 	documents []schema.Document,
@@ -32,6 +33,7 @@ func AddDocuments(ctx context.Context,
 
 }
 
+// Search for documents in the vector store.
 func SimilaritySearch(ctx context.Context,
 	store *chroma.Store,
 	query string,
@@ -56,6 +58,8 @@ func SimilaritySearch(ctx context.Context,
 
 }
 
+// Delete collection and all documents in the vector store.
+// each store has only one collection.?
 func DeleteCollection(ctx context.Context,
 	store *chroma.Store) error {
 	// Delete collection and all documents in the vector store.
