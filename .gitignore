@@ -5,6 +5,7 @@ myenv/
 build/
 .ipynb_checkpoints
 .idea/
+**/.idea/
 __pycache__/
 *.pyc
 *.pyo
