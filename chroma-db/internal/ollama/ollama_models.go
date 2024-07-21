@@ -5,14 +5,16 @@ import (
 	"github.com/tmc/langchaingo/llms/ollama"
 )
 
-func GetOllamaModel(model string) (*ollama.LLM, error) {
-	option := ollama.WithModel(model)
+func GetOllamaModel(ollamaUrl string, model string) (*ollama.LLM, error) {
 
-	ollamaEmbeder, err := ollama.New(option)
+	ollamaModel, err := ollama.New(
+		ollama.WithServerURL(ollamaUrl),
+		ollama.WithModel(model),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return ollamaEmbeder, nil
+	return ollamaModel, nil
 
 }
 
