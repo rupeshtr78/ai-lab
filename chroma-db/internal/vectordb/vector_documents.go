@@ -1,10 +1,11 @@
-package documents
+package vectordb
 
 import (
 	"context"
 	"errors"
 	"log"
 
+	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
 	"github.com/tmc/langchaingo/vectorstores/chroma"
@@ -14,12 +15,20 @@ import (
 func AddDocuments(ctx context.Context,
 	store *chroma.Store,
 	documents []schema.Document,
-	namespace string) error {
+	nameSpace string,
+	embedder embeddings.Embedder) error {
 
-	nsOption := vectorstores.WithNameSpace(namespace)
+	vecOptions := make([]vectorstores.Option, 3)
+	vecOptions = append(vecOptions, vectorstores.WithEmbedder(embedder))
+	vecOptions = append(vecOptions, vectorstores.WithNameSpace(nameSpace))
+	// vecOptions = append(vecOptions, vectorstores.WithScoreThreshold(0.0)),
+	// vecOptions = append(vecOptions, vectorstores.WithDeduplicater(fn func(ctx context.Context, doc schema.Document) bool)
 
 	// 	// Add documents to the vector store. returns the ids of the added documents.
-	docIds, errAd := store.AddDocuments(ctx, documents, nsOption)
+	docIds, errAd := store.AddDocuments(ctx,
+		documents,
+		vecOptions...,
+	)
 	if errAd != nil {
 		log.Default().Printf("add documents: %v\n", errAd)
 		return chroma.ErrAddDocument
@@ -34,7 +43,7 @@ func AddDocuments(ctx context.Context,
 }
 
 // Search for documents in the vector store.
-func SimilaritySearch(ctx context.Context,
+func SearchVectorDb(ctx context.Context,
 	store *chroma.Store,
 	query string,
 	numDocuments int,

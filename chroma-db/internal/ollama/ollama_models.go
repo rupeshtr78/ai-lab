@@ -18,7 +18,12 @@ func GetOllamaModel(ollamaUrl string, model string) (*ollama.LLM, error) {
 
 }
 
-func GetOllamaEmbedding(ollamaLLM *ollama.LLM) (*embeddings.EmbedderImpl, error) {
+func GetOllamaEmbedding(ollamaUrl string, model string) (*embeddings.EmbedderImpl, error) {
+
+	ollamaLLM, err := GetOllamaModel(ollamaUrl, model)
+	if err != nil {
+		return nil, err
+	}
 
 	ollamaEmbeder, err := embeddings.NewEmbedder(ollamaLLM)
 	if err != nil {

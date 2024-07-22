@@ -38,3 +38,5 @@ langchain-rag/myenv/
 langchain-rag/build/
 langchain-rag/.vscode/
 langchain-rag/dist/
+**/.DS_Store/
+**/.DS_Store
