@@ -8,10 +8,11 @@ TEMPLATE """{{ if .System }}<|im_start|>system
 {{ end }}
 <|im_start|>assistant
 """
+PARAMETER seed 42
 PARAMETER temperature 0.6
-PARAMETER top_k 60
-PARAMETER top_p 0.6
-PARAMETER frequency_penalty 1.2
+PARAMETER top_k 80
+PARAMETER top_p 0.8
+PARAMETER frequency_penalty 0.9
 PARAMETER num_ctx 16384
 PARAMETER mirostat_eta 0.5
 PARAMETER num_batch 1024
